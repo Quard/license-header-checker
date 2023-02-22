@@ -1,0 +1,14 @@
+- id: license-header-checker
+  name: license header checker
+  description: Check that source files has a header with a license
+  entry: license_header_checker
+  language: python
+  types: [file]
+  pass_filenames: true
+  files: \.(c|h|dtsi|dts|overlay|keymap)$
+  exclude: ^app\/boards\/
+  args:
+    - --comment-style
+    - "/*| *| */"
+    - --license
+    - "\\nCopyright \\(c\\) \\d{4}(-\\d{4})? The ZMK Contributors\\n\\nSPDX-License-Identifier: MIT\\n"
