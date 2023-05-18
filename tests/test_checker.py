@@ -33,7 +33,7 @@ def test_checker_run(filename, content, result):
 
     args = mock.Mock(
         filenames=(filename, ),
-        license=r'\d+',
+        license=[r'\d+'],
         comment_style='#'
     )
 
@@ -41,6 +41,24 @@ def test_checker_run(filename, content, result):
         assert checker.run(args) == result
 
     m_open.assert_called_with(filename, 'r')
+
+
+def test_checker_match_only_last_regex():
+    args = mock.Mock(
+        filenames=('file.c', ),
+        license=[r'Hello:\d+'],
+        comment_style='#'
+    )
+    content = '# Hello World'
+
+    checker = LicenseHeaderChecker()
+    with mock.patch('builtins.open', mock.mock_open(read_data=content)):
+        assert checker.run(args) == 1
+
+    checker = LicenseHeaderChecker()
+    args.license.append(r'Hello W\w+')
+    with mock.patch('builtins.open', mock.mock_open(read_data=content)):
+        assert checker.run(args) == 0
 
 
 def test_fail_resolution__bad_format():
@@ -69,19 +87,19 @@ def test_fail_resolution__missing_header():
     (
         (
             ['--license', '\\d{3}'],
-            {'comment_style': '#', 'license': r'\d{3}', 'filenames': []},
+            {'comment_style': '#', 'license': [r'\d{3}'], 'filenames': []},
         ),
         (
             ['--license', '\\d{3}', '--comment-style', '@'],
-            {'comment_style': '@', 'license': r'\d{3}', 'filenames': []},
+            {'comment_style': '@', 'license': [r'\d{3}'], 'filenames': []},
         ),
         (
             ['--license', '\\d{3}', '--comment-style', '/*| *| */'],
-            {'comment_style': '/*| *| */', 'license': r'\d{3}', 'filenames': []},
+            {'comment_style': '/*| *| */', 'license': [r'\d{3}'], 'filenames': []},
         ),
         (
             ['--license', '\\w{3}', 'one.c', 'two.c', 'one.h'],
-            {'comment_style': '#', 'license': r'\w{3}', 'filenames': ['one.c', 'two.c', 'one.h']},
+            {'comment_style': '#', 'license': [r'\w{3}'], 'filenames': ['one.c', 'two.c', 'one.h']},
         ),
     )
 )
@@ -98,7 +116,7 @@ def test_comment_style_bad_format():
             LicenseHeaderChecker().run(
                 mock.Mock(
                     comment_style='|',
-                    license=r'.*',
+                    license=[r'.*'],
                     filenames=[]
                 )
             )

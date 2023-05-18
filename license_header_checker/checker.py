@@ -25,14 +25,22 @@ class LicenseHeaderChecker:
             print('Impropper configuration: bad comment style format')
             sys.exit(1)
 
-        license = re.compile(args.license)
+        licenses = [re.compile(license) for license in args.license]
         for filename in args.filenames:
             with open(filename, 'r') as fh:
                 header = reader.read(fh)
-                if not license.match(header):
-                    self.reporter.add(filename, self._get_fail_resolution(args.license, header))
+                if not self._check_for_correct_license(licenses, header):
+                    self.reporter.add(filename, self._get_fail_resolution(args.license[0], header))
 
         return len(self.reporter)
+
+    @staticmethod
+    def _check_for_correct_license(licenses, header):
+        for license in licenses:
+            if license.match(header):
+                return True
+
+        return False
 
     def _get_fail_resolution(self, regex, content):
         if not content:
@@ -62,6 +70,6 @@ class LicenseHeaderChecker:
                 ' syntax, like "/*| *| */" for C'
             )
         )
-        parser.add_argument('--license', help='required license regex')
+        parser.add_argument('--license', action='append', help='required license regex')
 
         return parser
