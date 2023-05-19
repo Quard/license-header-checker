@@ -2,8 +2,8 @@ from io import StringIO
 
 import pytest
 
-from license_header_checker.comment_reader import CommentReader
 from license_header_checker.exceptions import CommentStyleBadFormatException
+from license_header_checker.reader import CommentReader
 
 
 @pytest.mark.parametrize(

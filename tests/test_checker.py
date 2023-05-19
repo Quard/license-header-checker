@@ -1,3 +1,4 @@
+from io import StringIO
 from unittest import mock
 
 import pytest
@@ -40,7 +41,7 @@ def test_checker_run(filename, content, result):
     with mock.patch('builtins.open', mock.mock_open(read_data=content)) as m_open:
         assert checker.run(args) == result
 
-    m_open.assert_called_with(filename, 'r')
+    m_open.assert_called_with(filename, 'r+')
 
 
 def test_checker_match_only_last_regex():
@@ -87,19 +88,24 @@ def test_fail_resolution__missing_header():
     (
         (
             ['--license', '\\d{3}'],
-            {'comment_style': '#', 'license': [r'\d{3}'], 'filenames': []},
+            {'comment_style': '#', 'license': [r'\d{3}'], 'auto_populate': None, 'filenames': []},
         ),
         (
             ['--license', '\\d{3}', '--comment-style', '@'],
-            {'comment_style': '@', 'license': [r'\d{3}'], 'filenames': []},
+            {'comment_style': '@', 'license': [r'\d{3}'], 'auto_populate': None, 'filenames': []},
         ),
         (
             ['--license', '\\d{3}', '--comment-style', '/*| *| */'],
-            {'comment_style': '/*| *| */', 'license': [r'\d{3}'], 'filenames': []},
+            {'comment_style': '/*| *| */', 'license': [r'\d{3}'], 'auto_populate': None, 'filenames': []},
         ),
         (
             ['--license', '\\w{3}', 'one.c', 'two.c', 'one.h'],
-            {'comment_style': '#', 'license': [r'\w{3}'], 'filenames': ['one.c', 'two.c', 'one.h']},
+            {
+                'comment_style': '#',
+                'license': [r'\w{3}'],
+                'auto_populate': None,
+                'filenames': ['one.c', 'two.c', 'one.h']
+            },
         ),
     )
 )
@@ -123,3 +129,23 @@ def test_comment_style_bad_format():
 
     m_exit.assert_called_with(1)
     m_print.assert_called_with('Impropper configuration: bad comment style format')
+
+
+def test_checker_auto_populate():
+    tmpl = StringIO('license header\ncomment')
+    checker = LicenseHeaderChecker()
+
+    args = mock.Mock(
+        filenames=('some/path/to/source.c', ),
+        license=[r'\d+'],
+        comment_style='#',
+        auto_populate=tmpl,
+    )
+    content = 'from datetime import datetime'
+
+    with mock.patch('builtins.open', mock.mock_open(read_data=content)) as m_open:
+        assert checker.run(args) == 1
+
+    m_open.assert_called_with('some/path/to/source.c', 'r+')
+    assert m_open().write.call_count == 4
+    assert m_open().read.call_count == 1

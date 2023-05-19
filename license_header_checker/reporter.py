@@ -6,14 +6,30 @@ import abc
 import termcolor
 
 
-class Resolution:
+class Resolution(abc.ABC):
 
-    def __init__(self, resolution, details=None):
+    def __init__(self, resolution=None, details=None):
         self.resolution = resolution
+        if self.resolution is None:
+            self.resolution = self.MESSAGE
+
         self.details = details
 
     def __str__(self):
         return self.resolution
+
+
+class ResolutionNoLicense(Resolution):
+    MESSAGE = 'header comment not found'
+
+
+class ResolutionAutoPopulatedLicense(Resolution):
+    TERM_TEXT_COLOR = 'green'
+    MESSAGE = 'license header not found, auto populated'
+
+
+class ResolutionBadLicenseFormat(Resolution):
+    MESSAGE = 'license has bad format'
 
 
 class Reporter(abc.ABC):
@@ -26,11 +42,15 @@ class Reporter(abc.ABC):
 
     @staticmethod
     def resolution_no_header():
-        return Resolution('header comment not found')
+        return ResolutionNoLicense()
 
     @staticmethod
     def resolution_bad_license(content, position):
-        return Resolution('license has bad format', details=content)
+        return ResolutionBadLicenseFormat(details=content)
+
+    @staticmethod
+    def resolution_auto_populated_license():
+        return ResolutionAutoPopulatedLicense()
 
     def __len__(self):
         return len(self.files)
@@ -52,12 +72,11 @@ class TermReporter(Reporter):
 
     @staticmethod
     def resolution_no_header():
-        return Resolution('header comment not found')
+        return ResolutionNoLicense()
 
     @staticmethod
     def resolution_bad_license(content, position):
-        return Resolution(
-            'license has bad format',
+        return ResolutionBadLicenseFormat(
             details=(
                 termcolor.colored(content[:position], 'green')
                 + termcolor.colored(content[position:], 'red')
@@ -70,7 +89,7 @@ class TermReporter(Reporter):
     def report(self):
         for filename, resolution in self.files:
             print(
-                termcolor.colored(resolution, 'yellow'),
+                termcolor.colored(resolution, getattr(resolution, 'TERM_TEXT_COLOR', 'yellow')),
                 filename
             )
             if resolution.details:

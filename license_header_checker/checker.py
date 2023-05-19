@@ -5,9 +5,11 @@ import argparse
 import re
 import sys
 
-from license_header_checker.comment_reader import CommentReader
 from license_header_checker.exceptions import CommentStyleBadFormatException
-from license_header_checker.reporter import TermReporter
+from license_header_checker.reader import CommentReader
+from license_header_checker.reporter import (ResolutionAutoPopulatedLicense,
+                                             ResolutionNoLicense, TermReporter)
+from license_header_checker.writer import LicenseWriter
 
 
 class LicenseHeaderChecker:
@@ -21,16 +23,21 @@ class LicenseHeaderChecker:
     def run(self, args):
         try:
             reader = CommentReader(args.comment_style)
+            writer = LicenseWriter(args.comment_style, args.auto_populate)
         except CommentStyleBadFormatException:
             print('Impropper configuration: bad comment style format')
             sys.exit(1)
 
         licenses = [re.compile(license) for license in args.license]
         for filename in args.filenames:
-            with open(filename, 'r') as fh:
+            with open(filename, 'r+') as fh:
                 header = reader.read(fh)
                 if not self._check_for_correct_license(licenses, header):
-                    self.reporter.add(filename, self._get_fail_resolution(args.license[0], header))
+                    resolution = self._get_fail_resolution(args.license[0], header)
+                    if args.auto_populate and isinstance(resolution, ResolutionNoLicense):
+                        writer.write(fh)
+                        resolution = ResolutionAutoPopulatedLicense()
+                    self.reporter.add(filename, resolution)
 
         return len(self.reporter)
 
@@ -71,5 +78,10 @@ class LicenseHeaderChecker:
             )
         )
         parser.add_argument('--license', action='append', help='required license regex')
+        parser.add_argument(
+            '--auto-populate',
+            type=argparse.FileType('r'),
+            help='template file with proper license header'
+        )
 
         return parser
