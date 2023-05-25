@@ -147,5 +147,5 @@ def test_checker_auto_populate():
         assert checker.run(args) == 1
 
     m_open.assert_called_with('some/path/to/source.c', 'r+')
-    assert m_open().write.call_count == 4
+    assert m_open().write.call_count == 6
     assert m_open().read.call_count == 1

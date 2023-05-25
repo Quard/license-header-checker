@@ -34,7 +34,8 @@ class LicenseWriter:
             file_handle.write(f'{self.start}{line_end}')
 
         for line in tmpl.split(line_end):
-            file_handle.write(f'{self.prefix} {line}{line_end}')
+            file_handle.write(f'{self.prefix} {line}'.rstrip(' '))
+            file_handle.write(line_end)
 
         if self.multiline:
             file_handle.write(f'{self.end}{line_end}{line_end}')

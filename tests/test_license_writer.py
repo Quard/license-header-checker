@@ -8,14 +8,14 @@ from license_header_checker.writer import LicenseWriter
 
 
 def test_populate_license_single_line_comment():
-    tmpl = StringIO('test license\nheader')
+    tmpl = StringIO('test license\n\nheader')
     src_file = StringIO('from datetime import datetime\n\nprint(datetime.now())')
 
     LicenseWriter('#', tmpl).write(src_file)
 
     src_file.seek(0)
     assert src_file.read() == (
-        '# test license\n# header\n\n'
+        '# test license\n#\n# header\n\n'
         'from datetime import datetime\n\nprint(datetime.now())'
     )
 
